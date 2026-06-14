@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerak Semu Tahunan Matahari</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    color: #e0e0f0;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    color: #ffd700;
+    margin-bottom: 4px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    font-size: 0.75rem;
+    color: #8888aa;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  canvas {
+    border-radius: 16px;
+    background: #070718;
+    box-shadow: 0 0 40px rgba(255,200,0,0.15);
+    max-width: 100%;
+  }
+  .info-panel {
+    margin-top: 16px;
+    background: #12122a;
+    border-radius: 12px;
+    padding: 14px 20px;
+    width: 100%;
+    max-width: 600px;
+    border: 1px solid #2a2a4a;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+  }
+  .info-label { color: #8888bb; }
+  .info-value { color: #ffd700; font-weight: 600; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #aaa;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    justify-content: center;
+  }
+  button {
+    background: #1e1e3e;
+    color: #ddd;
+    border: 1px solid #3a3a6a;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  button:hover { background: #2e2e5e; border-color: #ffd700; color: #ffd700; }
+  button.active { background: #ffd70022; border-color: #ffd700; color: #ffd700; }
+  input[type=range] {
+    width: 100%;
+    accent-color: #ffd700;
+    margin-top: 6px;
+  }
+  .slider-label {
+    font-size: 0.75rem;
+    color: #8888bb;
+    margin-top: 8px;
+    margin-bottom: 2px;
+  }
+</style>
+</head>
+<body>
+<h1>☀️ Gerak Semu Tahunan Matahari</h1>
+<p class="subtitle">Pergerakan posisi matahari terhadap bumi sepanjang tahun</p>
+
+<canvas id="c" width="600" height="400"></canvas>
+
+<div class="info-panel">
+  <div class="info-row">
+    <span class="info-label">📅 Tanggal</span>
+    <span class="info-value" id="date-display">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">📍 Posisi Matahari</span>
+    <span class="info-value" id="pos-display">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">🌍 Musim Belahan Utara</span>
+    <span class="info-value" id="season-north">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">🌏 Musim Belahan Selatan</span>
+    <span class="info-value" id="season-south">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">⚡ Posisi Hari Ini (12 Juni)</span>
+    <span class="info-value" style="color:#ff6">Mendekati Summer Solstice ☀️</span>
+  </div>
+
+  <div class="slider-label">Geser untuk melihat posisi matahari sepanjang tahun:</div>
+  <input type="range" id="daySlider" min="0" max="364" value="162">
+
+  <div class="btn-row">
+    <button id="btnPlay" class="active">▶ Animasi</button>
+    <button id="btnToday">📍 Hari Ini</button>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ffd700"></div>Matahari</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>Garis Balik Utara (23.5° LU)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4488ff"></div>Khatulistiwa (0°)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#44ccff"></div>Garis Balik Selatan (23.5° LS)</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let dayOfYear = 162; // 12 Juni
+let animating = true;
+let animFrame;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const MONTH_DAYS = [0,31,59,90,120,151,181,212,243,273,304,334];
+
+function getDayLabel(day) {
+  let m = 11;
+  for (let i = 0; i < 12; i++) {
+    if (MONTH_DAYS[i] > day) { m = i - 1; break; }
+  }
+  m = Math.max(0, m);
+  const d = day - MONTH_DAYS[m] + 1;
+  return `${d} ${MONTHS[m]}`;
+}
+
+// Solar declination angle (approximate)
+function getDeclination(day) {
+  return -23.45 * Math.cos(2 * Math.PI * (day + 10) / 365);
+}
+
+function getSeason(dec, hemisphere) {
+  if (hemisphere === 'N') {
+    if (dec > 11.5) return '☀️ Musim Panas (Summer)';
+    if (dec < -11.5) return '❄️ Musim Dingin (Winter)';
+    if (dec >= 0) return '🌸 Musim Semi (Spring)';
+    return '🍂 Musim Gugur (Autumn)';
+  } else {
+    if (dec < -11.5) return '☀️ Musim Panas (Summer)';
+    if (dec > 11.5) return '❄️ Musim Dingin (Winter)';
+    if (dec <= 0) return '🌸 Musim Semi (Spring)';
+    return '🍂 Musim Gugur (Autumn)';
+  }
+}
+
+function getPosLabel(dec) {
+  if (Math.abs(dec) < 1) return '🟦 Khatulistiwa (0°)';
+  if (dec > 0) return `🔴 ${dec.toFixed(1)}° Lintang Utara`;
+  return `🔵 ${Math.abs(dec).toFixed(1)}° Lintang Selatan`;
+}
+
+function drawScene(day) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background gradient - space
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#05051a');
+  bg.addColorStop(1, '#0a0a20');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  ctx.save();
+  for (let i = 0; i < 80; i++) {
+    const sx = (i * 137.5 * 3.7) % W;
+    const sy = (i * 97.3 * 2.1) % H;
+    const r = (i % 3 === 0) ? 1.2 : 0.6;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + (i % 5) * 0.1})`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Layout
+  const earthX = W * 0.5;
+  const earthY = H * 0.5;
+  const orbitRX = W * 0.36;
+  const orbitRY = H * 0.32;
+
+  // Draw orbit ellipse
+  ctx.save();
+  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(earthX, earthY, orbitRX, orbitRY, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw orbit path colored by declination
+  for (let d = 0; d < 365; d++) {
+    const angle = (d / 365) * Math.PI * 2 - Math.PI / 2;
+    const x = earthX + orbitRX * Math.cos(angle);
+    const y = earthY + orbitRY * Math.sin(angle);
+    const dec = getDeclination(d);
+    const t = (dec + 23.45) / 46.9;
+    const r = Math.round(255 * t);
+    const b = Math.round(255 * (1 - t));
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${r},100,${b},0.5)`;
+    ctx.fill();
+  }
+
+  // Month markers
+  ctx.save();
+  MONTH_DAYS.forEach((md, mi) => {
+    const angle = (md / 365) * Math.PI * 2 - Math.PI / 2;
+    const x = earthX + (orbitRX + 18) * Math.cos(angle);
+    const y = earthY + (orbitRY + 14) * Math.sin(angle);
+    ctx.font = '10px Segoe UI';
+    ctx.fillStyle = 'rgba(180,180,220,0.7)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(MONTHS[mi], x, y);
+  });
+  ctx.restore();
+
+  // Earth
+  const earthGrad = ctx.createRadialGradient(earthX - 8, earthY - 8, 2, earthX, earthY, 28);
+  earthGrad.addColorStop(0, '#4488ee');
+  earthGrad.addColorStop(0.5, '#2255bb');
+  earthGrad.addColorStop(1, '#0a1a44');
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, 28, 0, Math.PI * 2);
+  ctx.fillStyle = earthGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#6699ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Earth continents (simplified)
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = 'rgba(80,180,80,0.55)';
+  ctx.beginPath(); ctx.ellipse(earthX - 5, earthY - 6, 9, 13, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(earthX + 10, earthY + 4, 7, 9, 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(earthX - 8, earthY + 10, 11, 6, 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Equator line on earth
+  ctx.save();
+  ctx.strokeStyle = '#4488ff';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(earthX - 28, earthY);
+  ctx.lineTo(earthX + 28, earthY);
+  ctx.stroke();
+
+  // Tropic lines
+  const tropicOffset = 28 * Math.sin(23.45 * Math.PI / 180);
+  ctx.strokeStyle = 'rgba(255,80,80,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(earthX - 26, earthY - tropicOffset);
+  ctx.lineTo(earthX + 26, earthY - tropicOffset);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(80,200,255,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(earthX - 26, earthY + tropicOffset);
+  ctx.lineTo(earthX + 26, earthY + tropicOffset);
+  ctx.stroke();
+  ctx.restore();
+
+  // Axis tilt
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(earthX + 10, earthY - 40);
+  ctx.lineTo(earthX - 10, earthY + 40);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = '#aaaacc';
+  ctx.font = '9px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌍', earthX, earthY + 1);
+
+  // Labels for earth lines
+  ctx.font = '9px Segoe UI';
+  ctx.fillStyle = '#ff6666';
+  ctx.textAlign = 'left';
+  ctx.fillText('23.5°LU', earthX + 30, earthY - tropicOffset + 3);
+  ctx.fillStyle = '#4499ff';
+  ctx.fillText('0°', earthX + 30, earthY + 3);
+  ctx.fillStyle = '#66ccff';
+  ctx.fillText('23.5°LS', earthX + 30, earthY + tropicOffset + 3);
+
+  // Sun position
+  const angle = (day / 365) * Math.PI * 2 - Math.PI / 2;
+  const sunX = earthX + orbitRX * Math.cos(angle);
+  const sunY = earthY + orbitRY * Math.sin(angle);
+
+  // Sun glow
+  const glowGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 40);
+  glowGrad.addColorStop(0, 'rgba(255,220,50,0.8)');
+  glowGrad.addColorStop(0.3, 'rgba(255,160,0,0.3)');
+  glowGrad.addColorStop(1, 'rgba(255,100,0,0)');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+
+  // Sun rays
+  ctx.save();
+  ctx.translate(sunX, sunY);
+  const rotAngle = (day / 365) * Math.PI * 2;
+  ctx.rotate(rotAngle);
+  for (let i = 0; i < 8; i++) {
+    ctx.rotate(Math.PI / 4);
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(22, 0);
+    ctx.strokeStyle = 'rgba(255,220,50,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Sun body
+  const sunGrad = ctx.createRadialGradient(sunX - 3, sunY - 3, 1, sunX, sunY, 14);
+  sunGrad.addColorStop(0, '#fff7aa');
+  sunGrad.addColorStop(0.5, '#ffcc00');
+  sunGrad.addColorStop(1, '#ff8800');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#ffdd44';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Sun label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('☀️', sunX, sunY + 1);
+
+  // Draw line from Earth to Sun showing declination
+  ctx.save();
+  ctx.setLineDash([3, 4]);
+  ctx.strokeStyle = 'rgba(255,220,80,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(earthX, earthY);
+  ctx.lineTo(sunX, sunY);
+  ctx.stroke();
+  ctx.restore();
+
+  // Today marker (day 162 = 12 Juni)
+  const todayAngle = (162 / 365) * Math.PI * 2 - Math.PI / 2;
+  const todayX = earthX + orbitRX * Math.cos(todayAngle);
+  const todayY = earthY + orbitRY * Math.sin(todayAngle);
+  if (Math.abs(day - 162) > 5) {
+    ctx.beginPath();
+    ctx.arc(todayX, todayY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,100,0.6)';
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 1.5;
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = '9px Segoe UI';
+    ctx.fillStyle = '#ffff88';
+    ctx.textAlign = 'center';
+    ctx.fillText('Hari ini', todayX, todayY - 10);
+  }
+
+  // Key events (Solstices & Equinoxes)
+  const events = [
+    { day: 79, label: 'Ekuinoks\nMaret', color: '#88ff88' },
+    { day: 172, label: 'Solstis\nJuni', color: '#ff8888' },
+    { day: 264, label: 'Ekuinoks\nSep', color: '#88ff88' },
+    { day: 355, label: 'Solstis\nDes', color: '#88ccff' },
+  ];
+  events.forEach(ev => {
+    const ea = (ev.day / 365) * Math.PI * 2 - Math.PI / 2;
+    const ex = earthX + (orbitRX + 28) * Math.cos(ea);
+    const ey = earthY + (orbitRY + 18) * Math.sin(ea);
+    ctx.font = 'bold 8px Segoe UI';
+    ctx.fillStyle = ev.color;
+    ctx.textAlign = 'center';
+    const lines = ev.label.split('\n');
+    lines.forEach((l, i) => ctx.fillText(l, ex, ey - 5 + i * 10));
+  });
+
+  // Declination bar on right
+  const barX = W - 28, barY1 = H * 0.15, barH = H * 0.7;
+  const barGrad = ctx.createLinearGradient(0, barY1, 0, barY1 + barH);
+  barGrad.addColorStop(0, '#ff4444');
+  barGrad.addColorStop(0.5, '#4466ff');
+  barGrad.addColorStop(1, '#44aaff');
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(barX - 6, barY1, 12, barH);
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(barX - 4, barY1, 8, barH);
+
+  const dec = getDeclination(day);
+  const decFrac = (dec + 23.45) / 46.9;
+  const indicY = barY1 + barH * (1 - decFrac);
+  ctx.beginPath();
+  ctx.arc(barX, indicY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffd700';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Bar labels
+  ctx.font = '8px Segoe UI';
+  ctx.fillStyle = '#ff6666';
+  ctx.textAlign = 'center';
+  ctx.fillText('23.5°N', barX, barY1 - 4);
+  ctx.fillStyle = '#4488ff';
+  ctx.fillText('0°', barX, barY1 + barH / 2);
+  ctx.fillStyle = '#66ccff';
+  ctx.fillText('23.5°S', barX, barY1 + barH + 10);
+  ctx.fillStyle = '#aaa';
+  ctx.save();
+  ctx.translate(barX, earthY);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = '8px Segoe UI';
+  ctx.fillText('DEKLINASI', 0, -16);
+  ctx.restore();
+
+  // Update info panel
+  document.getElementById('date-display').textContent = getDayLabel(day) + ' 2026';
+  document.getElementById('pos-display').textContent = getPosLabel(dec);
+  document.getElementById('season-north').textContent = getSeason(dec, 'N');
+  document.getElementById('season-south').textContent = getSeason(dec, 'S');
+}
+
+function animate() {
+  if (animating) {
+    dayOfYear = (dayOfYear + 0.5) % 365;
+    document.getElementById('daySlider').value = Math.round(dayOfYear);
+  }
+  drawScene(Math.round(dayOfYear));
+  animFrame = requestAnimationFrame(animate);
+}
+
+document.getElementById('daySlider').addEventListener('input', function() {
+  dayOfYear = parseInt(this.value);
+  drawScene(dayOfYear);
+});
+
+document.getElementById('btnPlay').addEventListener('click', function() {
+  animating = !animating;
+  this.textContent = animating ? '⏸ Jeda' : '▶ Animasi';
+  this.classList.toggle('active', animating);
+});
+
+document.getElementById('btnToday').addEventListener('click', function() {
+  dayOfYear = 162;
+  animating = false;
+  document.getElementById('daySlider').value = 162;
+  document.getElementById('btnPlay').textContent = '▶ Animasi';
+  document.getElementById('btnPlay').classList.remove('active');
+  drawScene(162);
+});
+
+animate();
+</script>
+</body>
+</html>
