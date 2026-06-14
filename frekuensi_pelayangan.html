@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Penurunan Rumus Frekuensi Pelayangan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,700;1,300&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:     #1a1a2e;
+    --paper:   #f7f5f0;
+    --accent:  #2563eb;
+    --gold:    #c8922a;
+    --wave1:   #2563eb;
+    --wave2:   #dc2626;
+    --beat:    #16a34a;
+    --rule:    #d1cfc8;
+    --muted:   #6b6860;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    padding: 0 1rem 4rem;
+  }
+
+  /* ── HERO ── */
+  header {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3.5rem 0 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .6rem;
+  }
+  h1 {
+    font-family: 'Merriweather', serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subtitle {
+    margin-top: .75rem;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  /* ── LAYOUT ── */
+  main { max-width: 760px; margin: 0 auto; }
+
+  /* ── SECTION LABEL ── */
+  .step {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .step-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: .4rem;
+  }
+  h2 {
+    font-family: 'Merriweather', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: .8rem;
+  }
+  p { margin-bottom: .9rem; color: #333; }
+
+  /* ── MATH BLOCK ── */
+  .math-block {
+    background: #fff;
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1.1rem 1.4rem;
+    margin: 1.2rem 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    line-height: 2;
+    overflow-x: auto;
+  }
+  .math-block .eq { display: block; }
+  .math-block .comment {
+    font-family: 'Inter', sans-serif;
+    font-size: .8rem;
+    color: var(--muted);
+    margin-left: .5rem;
+  }
+  .math-block .highlight { color: var(--accent); font-weight: 600; }
+  .math-block .result    { color: var(--beat);   font-weight: 600; }
+
+  /* ── WAVE VISUALIZER ── */
+  .canvas-wrap {
+    margin: 1.5rem 0;
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem 1rem .5rem;
+    border: 1px solid var(--rule);
+  }
+  .canvas-wrap h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .6rem;
+  }
+  canvas { width: 100%; display: block; }
+
+  .legend {
+    display: flex; gap: 1.2rem; flex-wrap: wrap;
+    margin-top: .5rem;
+    font-size: .8rem; color: var(--muted);
+  }
+  .legend span { display: flex; align-items: center; gap: .35rem; }
+  .swatch { width: 28px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: .93rem;
+  }
+  .callout strong { color: var(--accent); }
+
+  /* ── RESULT BOX ── */
+  .result-box {
+    background: var(--ink);
+    color: #f0f0f0;
+    border-radius: 10px;
+    padding: 1.6rem 1.8rem;
+    margin: 2rem 0;
+    text-align: center;
+  }
+  .result-box .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: .6rem;
+  }
+  .result-box .formula {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    color: #facc15;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .result-box .note {
+    margin-top: .6rem;
+    font-size: .82rem;
+    color: #9ca3af;
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: 1rem 0; }
+  th { background: var(--ink); color: #fff; padding: .5rem .8rem; text-align: left;
+       font-family: 'IBM Plex Mono', monospace; font-size: .75rem; letter-spacing: .06em; }
+  td { padding: .5rem .8rem; border-bottom: 1px solid var(--rule); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f0f0eb; }
+
+  /* ── INTERACTIVE SLIDER ── */
+  .slider-section {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    margin: 1.4rem 0;
+  }
+  .slider-section h3 {
+    font-size: .88rem; font-weight: 600; margin-bottom: 1rem;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: .8rem; margin-bottom: .7rem;
+    font-size: .88rem;
+  }
+  .slider-row label { width: 28px; font-family: 'IBM Plex Mono', monospace; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .slider-row .val {
+    width: 64px; text-align: right;
+    font-family: 'IBM Plex Mono', monospace; font-size: .85rem;
+  }
+  .beat-display {
+    margin-top: .8rem;
+    padding: .7rem 1rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .9rem;
+    color: var(--beat);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Fisika Gelombang · Superposisi</p>
+  <h1>Penurunan Rumus<br><em>Frekuensi Pelayangan</em></h1>
+  <p class="subtitle">f<sub>pelayangan</sub> = |f₁ − f₂| — dari persamaan gelombang hingga hasil akhir, langkah demi langkah.</p>
+</header>
+
+<main>
+
+<!-- ═══ LANGKAH 0: APA ITU PELAYANGAN ═══ -->
+<section class="step">
+  <p class="step-label">Konsep Dasar</p>
+  <h2>Apa itu Pelayangan (Beat)?</h2>
+  <p>Ketika <strong>dua gelombang bunyi</strong> dengan frekuensi yang <em>hampir sama</em> merambat bersamaan, telinga kita mendengar bunyi yang <strong>mengeras dan melemah secara bergantian</strong> secara periodik. Fenomena ini disebut <strong>pelayangan</strong> (beat).</p>
+  <p>Laju mengeras-melemahnya bunyi itu disebut <strong>frekuensi pelayangan</strong>. Pertanyaannya: seberapa cepat itu terjadi?</p>
+
+  <div class="canvas-wrap">
+    <h3>Visualisasi — dua gelombang & hasil superposisinya</h3>
+    <canvas id="beatCanvas" height="200"></canvas>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--wave1)"></span> Gelombang 1 (f₁)</span>
+      <span><span class="swatch" style="background:var(--wave2)"></span> Gelombang 2 (f₂)</span>
+      <span><span class="swatch" style="background:var(--beat)"></span> Superposisi (hasil)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LANGKAH 1: PERSAMAAN GELOMBANG ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 1</p>
+  <h2>Tulis Persamaan Masing-masing Gelombang</h2>
+  <p>Dua sumber bunyi menghasilkan gelombang dengan <strong>amplitudo sama A</strong>, tetapi frekuensi berbeda f₁ dan f₂.</p>
+
+  <div class="math-block">
+    <span class="eq">y₁ = A sin(2π f₁ t)</span>
+    <span class="eq">y₂ = A sin(2π f₂ t)</span>
+  </div>
+
+  <p>Kita asumsikan kedua gelombang berada di posisi yang sama (x = 0) sehingga tidak ada suku fase posisi — ini menyederhanakan penurunan tanpa menghilangkan esensinya.</p>
+</section>
+
+<!-- ═══ LANGKAH 2: SUPERPOSISI ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 2</p>
+  <h2>Prinsip Superposisi — Jumlahkan Kedua Gelombang</h2>
+  <p>Menurut <strong>prinsip superposisi</strong>, simpangan total adalah jumlah kedua simpangan:</p>
+
+  <div class="math-block">
+    <span class="eq">y = y₁ + y₂</span>
+    <span class="eq">y = A sin(2π f₁ t) + A sin(2π f₂ t)</span>
+  </div>
+
+  <div class="callout">
+    <strong>Kunci penurunan:</strong> Sekarang kita gunakan identitas trigonometri penjumlahan sinus untuk menyederhanakan ekspresi ini.
+  </div>
+</section>
+
+<!-- ═══ LANGKAH 3: IDENTITAS TRIG ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 3</p>
+  <h2>Gunakan Identitas Jumlah Sinus</h2>
+  <p>Identitas trigonometri yang relevan:</p>
+
+  <div class="math-block">
+    <span class="eq highlight">sin P + sin Q = 2 cos((P−Q)/2) · sin((P+Q)/2)</span>
+  </div>
+
+  <p>Kita identifikasi:</p>
+  <div class="math-block">
+    <span class="eq">P = 2π f₁ t</span>
+    <span class="eq">Q = 2π f₂ t</span>
+  </div>
+
+  <p>Hitung masing-masing suku:</p>
+  <div class="math-block">
+    <span class="eq">(P − Q)/2 = (2π f₁ t − 2π f₂ t)/2 = π(f₁ − f₂)t</span>
+    <span class="eq">(P + Q)/2 = (2π f₁ t + 2π f₂ t)/2 = π(f₁ + f₂)t</span>
+  </div>
+</section>
+
+<!-- ═══ LANGKAH 4: SUBSTITUSI ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 4</p>
+  <h2>Substitusikan ke Persamaan Superposisi</h2>
+  <p>Masukkan hasil di Langkah 3 ke rumus superposisi:</p>
+
+  <div class="math-block">
+    <span class="eq">y = A · [sin(2π f₁ t) + sin(2π f₂ t)]</span>
+    <span class="eq">&nbsp;</span>
+    <span class="eq">y = A · 2 cos(π(f₁−f₂)t) · sin(π(f₁+f₂)t)</span>
+    <span class="eq">&nbsp;</span>
+    <span class="eq result">y = 2A cos(π(f₁−f₂)t) · sin(π(f₁+f₂)t)</span>
+  </div>
+
+  <div class="callout">
+    <strong>Interpretasi fisik:</strong> Persamaan ini adalah gelombang sinus dengan frekuensi <em>rata-rata</em> (f₁+f₂)/2, namun amplitudonya <em>bervariasi</em> menurut fungsi cosinus dengan frekuensi (f₁−f₂)/2.
+  </div>
+</section>
+
+<!-- ═══ LANGKAH 5: AMPLITUDO MODULASI ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 5</p>
+  <h2>Identifikasi Amplitudo yang Berubah-ubah</h2>
+  <p>Tuliskan ulang hasil Langkah 4 dengan melihat strukturnya:</p>
+
+  <div class="math-block">
+    <span class="eq">y = <span class="highlight">A(t)</span> · sin(π(f₁+f₂)t)</span>
+    <span class="eq">&nbsp;</span>
+    <span class="eq">di mana <span class="highlight">A(t) = 2A cos(π(f₁−f₂)t)</span></span>
+  </div>
+
+  <p>Suku <strong>A(t)</strong> adalah "amplitudo yang bermodulasi" — inilah yang menyebabkan bunyi mengeras dan melemah.</p>
+
+  <table>
+    <tr><th>Suku</th><th>Makna Fisik</th></tr>
+    <tr><td>sin(π(f₁+f₂)t)</td><td>Osilasi cepat — frekuensi yang terdengar = (f₁+f₂)/2</td></tr>
+    <tr><td>2A cos(π(f₁−f₂)t)</td><td>Modulasi amplitudo — menyebabkan "pelayangan"</td></tr>
+  </table>
+</section>
+
+<!-- ═══ LANGKAH 6: FREKUENSI PELAYANGAN ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 6</p>
+  <h2>Tentukan Frekuensi Pelayangan</h2>
+  <p>Amplitudo <strong>A(t) = 2A cos(π(f₁−f₂)t)</strong> mencapai nilai maksimum (keras) setiap kali nilai mutlak cosinus = 1, yaitu:</p>
+
+  <div class="math-block">
+    <span class="eq">|cos(π(f₁−f₂)t)| = 1</span>
+    <span class="eq">terjadi setiap T_amplitudo = 1/(f₁−f₂)</span>
+  </div>
+
+  <p>Namun, <strong>satu periode cosinus</strong> menghasilkan <strong>dua kali</strong> bunyi keras (sekali saat puncak positif, sekali saat puncak negatif — telinga tidak membedakan fase):</p>
+
+  <div class="math-block">
+    <span class="eq">f_pelayangan = 2 × f_modulasi</span>
+    <span class="eq">f_pelayangan = 2 × (f₁−f₂)/2</span>
+    <span class="eq result">f_pelayangan = (f₁ − f₂)</span>
+  </div>
+
+  <div class="callout">
+    <strong>Kenapa dikalikan 2?</strong> Fungsi cos dalam satu periode mencapai dua puncak (positif dan negatif). Telinga mendengar <em>kekerasan</em> bunyi, bukan fasanya — jadi dua puncak = dua kali "keras" = dua kali pelayangan per periode.
+  </div>
+</section>
+
+<!-- ═══ LANGKAH 7: NILAI MUTLAK ═══ -->
+<section class="step">
+  <p class="step-label">Langkah 7</p>
+  <h2>Mengapa Perlu Nilai Mutlak?</h2>
+  <p>Frekuensi tidak bisa negatif. Jika f₂ > f₁, maka (f₁ − f₂) &lt; 0. Karena kita hanya peduli <em>selisih besarnya</em>, maka:</p>
+
+  <div class="math-block">
+    <span class="eq result">f_pelayangan = |f₁ − f₂|</span>
+  </div>
+
+  <p>Nilai mutlak memastikan frekuensi pelayangan selalu positif, tidak peduli mana yang lebih besar antara f₁ dan f₂.</p>
+</section>
+
+<!-- ═══ HASIL AKHIR ═══ -->
+<div class="result-box">
+  <p class="label">Hasil Akhir · Rumus Frekuensi Pelayangan</p>
+  <p class="formula">f<sub>pelayangan</sub> = |f₁ − f₂|</p>
+  <p class="note">Jumlah ketukan per detik = selisih mutlak kedua frekuensi sumber</p>
+</div>
+
+<!-- ═══ RINGKASAN ALUR ═══ -->
+<section class="step">
+  <p class="step-label">Ringkasan Alur Penurunan</p>
+  <h2>Dari Mana ke Mana</h2>
+  <table>
+    <tr><th>#</th><th>Langkah</th><th>Hasil</th></tr>
+    <tr><td>1</td><td>Tulis persamaan dua gelombang</td><td>y₁ = A sin(2πf₁t), y₂ = A sin(2πf₂t)</td></tr>
+    <tr><td>2</td><td>Superposisi: y = y₁ + y₂</td><td>y = A(sin P + sin Q)</td></tr>
+    <tr><td>3</td><td>Identitas sin P + sin Q</td><td>= 2 cos((P−Q)/2) sin((P+Q)/2)</td></tr>
+    <tr><td>4</td><td>Substitusi</td><td>y = 2A cos(π(f₁−f₂)t) · sin(π(f₁+f₂)t)</td></tr>
+    <tr><td>5</td><td>Kenali amplitudo modulasi</td><td>A(t) = 2A cos(π(f₁−f₂)t)</td></tr>
+    <tr><td>6</td><td>Hitung f pelayangan (×2 karena 2 puncak)</td><td>f = 2 × (f₁−f₂)/2 = f₁−f₂</td></tr>
+    <tr><td>7</td><td>Tambahkan nilai mutlak</td><td><strong>f_pelayangan = |f₁ − f₂|</strong></td></tr>
+  </table>
+</section>
+
+<!-- ═══ KALKULATOR INTERAKTIF ═══ -->
+<section class="step">
+  <p class="step-label">Coba Sendiri</p>
+  <h2>Kalkulator Frekuensi Pelayangan</h2>
+
+  <div class="slider-section">
+    <h3>Geser untuk mengubah frekuensi</h3>
+    <div class="slider-row">
+      <label>f₁</label>
+      <input type="range" id="f1" min="200" max="500" value="440" step="1">
+      <span class="val" id="f1val">440 Hz</span>
+    </div>
+    <div class="slider-row">
+      <label>f₂</label>
+      <input type="range" id="f2" min="200" max="500" value="444" step="1">
+      <span class="val" id="f2val">444 Hz</span>
+    </div>
+    <div class="beat-display" id="beatResult">
+      f_pelayangan = |440 − 444| = 4 Hz → 4 ketukan per detik
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <h3>Gelombang hasil sesuai slider</h3>
+    <canvas id="liveCanvas" height="160"></canvas>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--wave1)"></span> f₁</span>
+      <span><span class="swatch" style="background:var(--wave2)"></span> f₂</span>
+      <span><span class="swatch" style="background:var(--beat)"></span> Superposisi</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ── Static beat canvas ── */
+(function () {
+  const canvas = document.getElementById('beatCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 200;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const f1 = 5, f2 = 5.7, A = 28;
+  const T = W;
+
+  function draw(ctx, W, H, f1, f2, A) {
+    ctx.clearRect(0, 0, W, H);
+    const rows = [
+      { f: f1, color: getComputedStyle(document.documentElement).getPropertyValue('--wave1').trim(), yOff: H * 0.18 },
+      { f: f2, color: getComputedStyle(document.documentElement).getPropertyValue('--wave2').trim(), yOff: H * 0.5  },
+    ];
+
+    rows.forEach(r => {
+      ctx.beginPath();
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 1.8;
+      for (let x = 0; x <= W; x++) {
+        const t = x / W;
+        const y = r.yOff + A * Math.sin(2 * Math.PI * r.f * t);
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    });
+
+    // superposition
+    ctx.beginPath();
+    ctx.strokeStyle = '#16a34a';
+    ctx.lineWidth = 2.2;
+    for (let x = 0; x <= W; x++) {
+      const t = x / W;
+      const y = H * 0.82 + A * (Math.sin(2 * Math.PI * f1 * t) + Math.sin(2 * Math.PI * f2 * t));
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  draw(ctx, W, H, f1, f2, A);
+})();
+
+/* ── Live interactive canvas ── */
+(function () {
+  const canvas = document.getElementById('liveCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 160;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const f1Input = document.getElementById('f1');
+  const f2Input = document.getElementById('f2');
+  const f1Val   = document.getElementById('f1val');
+  const f2Val   = document.getElementById('f2val');
+  const beatRes = document.getElementById('beatResult');
+
+  function redraw() {
+    const f1 = +f1Input.value, f2 = +f2Input.value;
+    f1Val.textContent = f1 + ' Hz';
+    f2Val.textContent = f2 + ' Hz';
+    const beat = Math.abs(f1 - f2);
+    beatRes.textContent = `f_pelayangan = |${f1} − ${f2}| = ${beat} Hz → ${beat} ketukan per detik`;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // normalise displayed freq so beat pattern is visible
+    const base = 8, ratio = f2 / f1;
+    const df1 = base, df2 = base * ratio;
+    const A = 18;
+
+    [[df1, '#2563eb', H*0.2], [df2, '#dc2626', H*0.5]].forEach(([f, c, yo]) => {
+      ctx.beginPath(); ctx.strokeStyle = c; ctx.lineWidth = 1.6;
+      for (let x = 0; x <= W; x++) {
+        const y = yo + A * Math.sin(2*Math.PI*f*(x/W));
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    });
+
+    ctx.beginPath(); ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
+    for (let x = 0; x <= W; x++) {
+      const t = x/W;
+      const y = H*0.8 + A*(Math.sin(2*Math.PI*df1*t) + Math.sin(2*Math.PI*df2*t));
+      x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  f1Input.addEventListener('input', redraw);
+  f2Input.addEventListener('input', redraw);
+  redraw();
+})();
+</script>
+</body>
+</html>

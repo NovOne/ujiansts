@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revolusi Bumi Mengelilingi Matahari</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07071a;
+    color: #e0e0f0;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    color: #ffd700;
+    margin-bottom: 4px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    font-size: 0.75rem;
+    color: #8888aa;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  canvas {
+    border-radius: 16px;
+    background: #070718;
+    box-shadow: 0 0 50px rgba(255,200,0,0.2);
+    max-width: 100%;
+  }
+  .info-panel {
+    margin-top: 16px;
+    background: #12122a;
+    border-radius: 12px;
+    padding: 14px 20px;
+    width: 100%;
+    max-width: 620px;
+    border: 1px solid #2a2a4a;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+  }
+  .info-label { color: #8888bb; }
+  .info-value { color: #ffd700; font-weight: 600; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #aaa;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #1e1e3e;
+    color: #ddd;
+    border: 1px solid #3a3a6a;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  button:hover { background: #2e2e5e; border-color: #ffd700; color: #ffd700; }
+  button.active { background: #ffd70022; border-color: #ffd700; color: #ffd700; }
+  input[type=range] {
+    width: 100%;
+    accent-color: #ffd700;
+    margin-top: 6px;
+  }
+  .slider-label {
+    font-size: 0.75rem;
+    color: #8888bb;
+    margin-top: 8px;
+    margin-bottom: 2px;
+  }
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: #8888bb;
+  }
+  .speed-row input { flex: 1; }
+  #speedVal { color: #ffd700; font-weight: 600; min-width: 40px; }
+</style>
+</head>
+<body>
+<h1>🌍 Revolusi Bumi Mengelilingi Matahari</h1>
+<p class="subtitle">Model Heliosentris — Matahari di pusat, Bumi yang berevolusi</p>
+
+<canvas id="c" width="620" height="430"></canvas>
+
+<div class="info-panel">
+  <div class="info-row">
+    <span class="info-label">📅 Tanggal</span>
+    <span class="info-value" id="date-display">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">📐 Deklinasi Matahari</span>
+    <span class="info-value" id="pos-display">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">🌍 Musim Belahan Utara</span>
+    <span class="info-value" id="season-north">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">🌏 Musim Belahan Selatan</span>
+    <span class="info-value" id="season-south">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">📍 Hari Ini (14 Juni 2026)</span>
+    <span class="info-value" style="color:#ffe066;">Mendekati Solstis Juni ☀️</span>
+  </div>
+
+  <div class="slider-label">Geser untuk melihat posisi bumi sepanjang tahun:</div>
+  <input type="range" id="daySlider" min="0" max="364" value="164">
+
+  <div class="speed-row">
+    <span>⚡ Kecepatan:</span>
+    <input type="range" id="speedSlider" min="1" max="10" value="3">
+    <span id="speedVal">3×</span>
+  </div>
+
+  <div class="btn-row">
+    <button id="btnPlay" class="active">⏸ Jeda</button>
+    <button id="btnToday">📍 Hari Ini</button>
+    <button id="btnAxis">🔄 Sumbu Bumi: ON</button>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ffd700"></div>Matahari (pusat)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3399ff"></div>Bumi</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff6666"></div>Sinar matahari</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ffffff;opacity:0.5"></div>Orbit bumi (elips)</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let dayOfYear = 164; // 14 Juni
+let animating = true;
+let showAxis = true;
+let speed = 3;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const MONTH_DAYS = [0,31,59,90,120,151,181,212,243,273,304,334];
+
+// Center = Sun position
+const sunX = W * 0.5;
+const sunY = H * 0.5;
+const orbitRX = W * 0.37;
+const orbitRY = H * 0.33;
+
+// Stars (pre-computed)
+const stars = [];
+for (let i = 0; i < 120; i++) {
+  stars.push({
+    x: (i * 137.508 * 4.1) % W,
+    y: (i * 97.31 * 2.9) % H,
+    r: (i % 4 === 0) ? 1.3 : (i % 2 === 0) ? 0.8 : 0.5,
+    a: 0.25 + (i % 7) * 0.1
+  });
+}
+
+function getDayLabel(day) {
+  let m = 11;
+  for (let i = 0; i < 12; i++) {
+    if (MONTH_DAYS[i] > day) { m = i - 1; break; }
+  }
+  m = Math.max(0, m);
+  const d = day - MONTH_DAYS[m] + 1;
+  return `${d} ${MONTHS[m]}`;
+}
+
+function getDeclination(day) {
+  return -23.45 * Math.cos(2 * Math.PI * (day + 10) / 365);
+}
+
+function getSeason(dec, hemisphere) {
+  if (hemisphere === 'N') {
+    if (dec > 11.5) return '☀️ Musim Panas (Summer)';
+    if (dec < -11.5) return '❄️ Musim Dingin (Winter)';
+    if (dec >= 0) return '🌸 Musim Semi (Spring)';
+    return '🍂 Musim Gugur (Autumn)';
+  } else {
+    if (dec < -11.5) return '☀️ Musim Panas (Summer)';
+    if (dec > 11.5) return '❄️ Musim Dingin (Winter)';
+    if (dec <= 0) return '🌸 Musim Semi (Spring)';
+    return '🍂 Musim Gugur (Autumn)';
+  }
+}
+
+// Earth position on orbit
+function getEarthPos(day) {
+  // Earth starts at bottom (Jan 1), goes counter-clockwise when viewed from north
+  // day 0 = Jan 1 ≈ perihelion (~Jan 3). Angle: 0 = right, CCW
+  const angle = -(day / 365) * Math.PI * 2 + Math.PI / 2; // starts top-ish, goes CCW
+  return {
+    x: sunX + orbitRX * Math.cos(angle),
+    y: sunY + orbitRY * Math.sin(angle),
+    angle
+  };
+}
+
+function drawScene(day) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  const bg = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, W * 0.8);
+  bg.addColorStop(0, '#0e0a00');
+  bg.addColorStop(0.3, '#06061a');
+  bg.addColorStop(1, '#040410');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  stars.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+    ctx.fill();
+  });
+
+  // Twinkling stars (a few)
+  const twinkle = Math.sin(Date.now() * 0.002) * 0.3 + 0.7;
+  [stars[3], stars[17], stars[41], stars[67]].forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,200,${twinkle * 0.6})`;
+    ctx.fill();
+  });
+
+  // === ORBIT PATH ===
+  // Colored arc segments by season
+  for (let d = 0; d < 365; d++) {
+    const p1 = getEarthPos(d);
+    const p2 = getEarthPos(d + 1);
+    const dec = getDeclination(d);
+    const t = (dec + 23.45) / 46.9;
+    const r = Math.round(80 + 175 * t);
+    const b = Math.round(200 - 150 * t);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(${r},100,${b},0.55)`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // Orbit ellipse dashed outline
+  ctx.save();
+  ctx.setLineDash([5, 8]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(sunX, sunY, orbitRX, orbitRY, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // === MONTH LABELS on orbit ===
+  MONTH_DAYS.forEach((md, mi) => {
+    const p = getEarthPos(md + 15);
+    const dx = p.x - sunX, dy = p.y - sunY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const labelX = sunX + (dx / len) * (len + 18);
+    const labelY = sunY + (dy / len) * (len + 14);
+    ctx.font = '10px Segoe UI';
+    ctx.fillStyle = 'rgba(180,180,220,0.75)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(MONTHS[mi], labelX, labelY);
+  });
+
+  // === KEY EVENTS ===
+  const events = [
+    { day: 79,  label: 'Ekuinoks\nMaret',  color: '#88ff88', sym: '🌸' },
+    { day: 172, label: 'Solstis\nJuni',    color: '#ff8866', sym: '☀️' },
+    { day: 264, label: 'Ekuinoks\nSep',   color: '#88ddff', sym: '🍂' },
+    { day: 355, label: 'Solstis\nDes',   color: '#aaccff', sym: '❄️' },
+  ];
+  events.forEach(ev => {
+    const p = getEarthPos(ev.day);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = ev.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff55';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // label slightly further out
+    const dx = p.x - sunX, dy = p.y - sunY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const lx = sunX + (dx / len) * (len + 34);
+    const ly = sunY + (dy / len) * (len + 22);
+    ctx.font = 'bold 8.5px Segoe UI';
+    ctx.fillStyle = ev.color;
+    ctx.textAlign = 'center';
+    ev.label.split('\n').forEach((l, i) => ctx.fillText(l, lx, ly - 4 + i * 10));
+  });
+
+  // === SUN (center) ===
+  // Sun corona glow
+  const coronaGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 90);
+  coronaGrad.addColorStop(0, 'rgba(255,230,100,0.25)');
+  coronaGrad.addColorStop(0.4, 'rgba(255,150,0,0.1)');
+  coronaGrad.addColorStop(1, 'rgba(255,80,0,0)');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 90, 0, Math.PI * 2);
+  ctx.fillStyle = coronaGrad;
+  ctx.fill();
+
+  // Sun outer glow
+  const outerGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 45);
+  outerGlow.addColorStop(0, 'rgba(255,240,150,0.9)');
+  outerGlow.addColorStop(0.5, 'rgba(255,180,0,0.5)');
+  outerGlow.addColorStop(1, 'rgba(255,80,0,0)');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 45, 0, Math.PI * 2);
+  ctx.fillStyle = outerGlow;
+  ctx.fill();
+
+  // Sun rays
+  ctx.save();
+  ctx.translate(sunX, sunY);
+  ctx.rotate(day * 0.03);
+  for (let i = 0; i < 12; i++) {
+    ctx.rotate(Math.PI / 6);
+    const len1 = i % 2 === 0 ? 26 : 22;
+    const len2 = i % 2 === 0 ? 38 : 32;
+    ctx.beginPath();
+    ctx.moveTo(len1, 0); ctx.lineTo(len2, 0);
+    ctx.strokeStyle = `rgba(255,220,60,${i % 2 === 0 ? 0.55 : 0.35})`;
+    ctx.lineWidth = i % 2 === 0 ? 2 : 1.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Sun body
+  const sunGrad = ctx.createRadialGradient(sunX - 6, sunY - 6, 2, sunX, sunY, 22);
+  sunGrad.addColorStop(0, '#fffde8');
+  sunGrad.addColorStop(0.3, '#ffe566');
+  sunGrad.addColorStop(0.7, '#ffaa00');
+  sunGrad.addColorStop(1, '#ff6600');
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#ffcc22';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Sun surface spots
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(200,80,0,0.25)';
+  ctx.beginPath();
+  ctx.arc(sunX + 7, sunY - 5, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath();
+  ctx.arc(sunX - 9, sunY + 8, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  ctx.font = '13px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('☀️', sunX, sunY + 5);
+  ctx.font = 'bold 8px Segoe UI';
+  ctx.fillStyle = '#ffdd88';
+  ctx.fillText('MATAHARI', sunX, sunY + 34);
+
+  // === EARTH ===
+  const ep = getEarthPos(day);
+  const earthX = ep.x, earthY = ep.y;
+  const dec = getDeclination(day);
+  // Axis tilt: 23.5° from vertical, always pointing same direction in space
+  const TILT = 23.5 * Math.PI / 180;
+
+  // Sunlight rays from Sun to Earth direction
+  ctx.save();
+  const dxSE = earthX - sunX, dySE = earthY - sunY;
+  const distSE = Math.sqrt(dxSE * dxSE + dySE * dySE);
+  const uxSE = dxSE / distSE, uySE = dySE / distSE;
+
+  // Draw several light rays
+  for (let ri = -2; ri <= 2; ri++) {
+    const perp = { x: -uySE * ri * 8, y: uxSE * ri * 8 };
+    ctx.beginPath();
+    ctx.moveTo(sunX + uxSE * 24 + perp.x, sunY + uySE * 24 + perp.y);
+    ctx.lineTo(earthX - uxSE * 26 + perp.x, earthY - uySE * 26 + perp.y);
+    ctx.strokeStyle = `rgba(255,220,80,${0.25 - Math.abs(ri) * 0.04})`;
+    ctx.lineWidth = ri === 0 ? 1.5 : 1;
+    ctx.setLineDash(ri === 0 ? [6, 5] : [4, 8]);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Earth glow (atmosphere)
+  const atmGrad = ctx.createRadialGradient(earthX, earthY, 14, earthX, earthY, 34);
+  atmGrad.addColorStop(0, 'rgba(80,150,255,0.0)');
+  atmGrad.addColorStop(0.6, 'rgba(80,150,255,0.15)');
+  atmGrad.addColorStop(1, 'rgba(50,100,200,0)');
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, 34, 0, Math.PI * 2);
+  ctx.fillStyle = atmGrad;
+  ctx.fill();
+
+  // Earth body
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, 20, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Day/night terminator based on Sun direction
+  const earthGrad = ctx.createRadialGradient(
+    earthX - uxSE * 10, earthY - uySE * 10, 0,
+    earthX, earthY, 20
+  );
+  earthGrad.addColorStop(0, '#5599ee');
+  earthGrad.addColorStop(0.5, '#2255bb');
+  earthGrad.addColorStop(1, '#061830');
+  ctx.fillStyle = earthGrad;
+  ctx.fillRect(earthX - 20, earthY - 20, 40, 40);
+
+  // Night side
+  const nightGrad = ctx.createRadialGradient(
+    earthX + uxSE * 10, earthY + uySE * 10, 0,
+    earthX + uxSE * 8, earthY + uySE * 8, 22
+  );
+  nightGrad.addColorStop(0, 'rgba(0,0,20,0.7)');
+  nightGrad.addColorStop(1, 'rgba(0,0,20,0)');
+  ctx.fillStyle = nightGrad;
+  ctx.fillRect(earthX - 22, earthY - 22, 44, 44);
+
+  // Continents (simplified, rotated with Earth's orbit)
+  const earthRot = ep.angle + Math.PI;
+  ctx.fillStyle = 'rgba(60,170,60,0.65)';
+  ctx.save();
+  ctx.translate(earthX, earthY);
+  ctx.rotate(earthRot);
+  ctx.beginPath(); ctx.ellipse(-4, -5, 6, 10, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(8, 3, 5, 7, 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-7, 9, 8, 4, 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  ctx.restore(); // end clip
+
+  // Earth outline
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, 20, 0, Math.PI * 2);
+  ctx.strokeStyle = '#4488ff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Equator line on Earth
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, 20, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(100,180,255,0.7)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(earthX - 20, earthY);
+  ctx.lineTo(earthX + 20, earthY);
+  ctx.stroke();
+  // Tropic lines
+  const tropicOff = 20 * Math.sin(TILT);
+  ctx.strokeStyle = 'rgba(255,100,80,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(earthX - 19, earthY - tropicOff);
+  ctx.lineTo(earthX + 19, earthY - tropicOff);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(80,180,255,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(earthX - 19, earthY + tropicOff);
+  ctx.lineTo(earthX + 19, earthY + tropicOff);
+  ctx.stroke();
+  ctx.restore();
+
+  // Earth axis (always pointing to "north pole" direction in space = fixed angle)
+  if (showAxis) {
+    const axisLen = 32;
+    // Axis always points to celestial north (fixed direction regardless of orbit position)
+    // True north pole direction: constant in space
+    const axNX = Math.sin(TILT); // small x offset
+    const axNY = -Math.cos(TILT); // mostly upward
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = 'rgba(255,255,200,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(earthX + axNX * axisLen, earthY + axNY * axisLen);
+    ctx.lineTo(earthX - axNX * axisLen, earthY - axNY * axisLen);
+    ctx.stroke();
+    ctx.restore();
+
+    // North pole label
+    ctx.font = '8px Segoe UI';
+    ctx.fillStyle = '#ffffaa';
+    ctx.textAlign = 'center';
+    ctx.fillText('N', earthX + axNX * (axisLen + 7), earthY + axNY * (axisLen + 7));
+    ctx.fillStyle = '#aaccff';
+    ctx.fillText('S', earthX - axNX * (axisLen + 7), earthY - axNY * (axisLen + 7));
+  }
+
+  // Earth label
+  ctx.font = '9px Segoe UI';
+  ctx.fillStyle = '#88aaff';
+  ctx.textAlign = 'center';
+  const ldir = earthY > sunY ? 1 : -1;
+  ctx.fillText('🌍 BUMI', earthX, earthY + 28 * ldir + (ldir > 0 ? 10 : -2));
+
+  // "Today" marker (day 164 = 14 Juni)
+  const todayEp = getEarthPos(164);
+  if (Math.abs(day - 164) > 6) {
+    ctx.beginPath();
+    ctx.arc(todayEp.x, todayEp.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,100,0.5)';
+    ctx.strokeStyle = '#ffff44';
+    ctx.lineWidth = 1.5;
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = '8px Segoe UI';
+    ctx.fillStyle = '#ffff88';
+    ctx.textAlign = 'center';
+    ctx.fillText('Hari ini', todayEp.x, todayEp.y - 10);
+  }
+
+  // === DECLINATION BAR (right side) ===
+  const barX = W - 26, barY1 = H * 0.14, barH = H * 0.72;
+  const barGrad = ctx.createLinearGradient(0, barY1, 0, barY1 + barH);
+  barGrad.addColorStop(0, '#ff5555');
+  barGrad.addColorStop(0.5, '#5566ff');
+  barGrad.addColorStop(1, '#55aaff');
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(barX - 6, barY1, 12, barH);
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(barX - 4, barY1, 8, barH);
+
+  const decFrac = (dec + 23.45) / 46.9;
+  const indicY = barY1 + barH * (1 - decFrac);
+  ctx.beginPath();
+  ctx.arc(barX, indicY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffd700';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.font = '8px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff8888'; ctx.fillText('23.5°LU', barX, barY1 - 5);
+  ctx.fillStyle = '#5599ff'; ctx.fillText('0°', barX, barY1 + barH / 2 + 3);
+  ctx.fillStyle = '#66ccff'; ctx.fillText('23.5°LS', barX, barY1 + barH + 11);
+  ctx.fillStyle = '#aaa';
+  ctx.save();
+  ctx.translate(barX, sunY);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = '7.5px Segoe UI';
+  ctx.fillText('DEKLINASI', 0, -14);
+  ctx.restore();
+
+  // === UPDATE INFO PANEL ===
+  document.getElementById('date-display').textContent = getDayLabel(day) + ' 2026';
+  const decStr = Math.abs(dec) < 0.5
+    ? '🟦 0° (Khatulistiwa)'
+    : dec > 0
+      ? `🔴 ${dec.toFixed(1)}° Lintang Utara`
+      : `🔵 ${Math.abs(dec).toFixed(1)}° Lintang Selatan`;
+  document.getElementById('pos-display').textContent = decStr;
+  document.getElementById('season-north').textContent = getSeason(dec, 'N');
+  document.getElementById('season-south').textContent = getSeason(dec, 'S');
+}
+
+// Animation loop
+let lastTime = 0;
+function animate(ts) {
+  if (animating) {
+    const delta = ts - lastTime;
+    if (delta > 16) {
+      dayOfYear = (dayOfYear + speed * 0.08) % 365;
+      document.getElementById('daySlider').value = Math.round(dayOfYear);
+      lastTime = ts;
+    }
+  }
+  drawScene(Math.round(dayOfYear));
+  requestAnimationFrame(animate);
+}
+
+// Controls
+document.getElementById('daySlider').addEventListener('input', function() {
+  dayOfYear = parseInt(this.value);
+  animating = false;
+  document.getElementById('btnPlay').textContent = '▶ Animasi';
+  document.getElementById('btnPlay').classList.remove('active');
+});
+
+document.getElementById('speedSlider').addEventListener('input', function() {
+  speed = parseInt(this.value);
+  document.getElementById('speedVal').textContent = speed + '×';
+});
+
+document.getElementById('btnPlay').addEventListener('click', function() {
+  animating = !animating;
+  this.textContent = animating ? '⏸ Jeda' : '▶ Animasi';
+  this.classList.toggle('active', animating);
+});
+
+document.getElementById('btnToday').addEventListener('click', function() {
+  dayOfYear = 164;
+  animating = false;
+  document.getElementById('daySlider').value = 164;
+  document.getElementById('btnPlay').textContent = '▶ Animasi';
+  document.getElementById('btnPlay').classList.remove('active');
+});
+
+document.getElementById('btnAxis').addEventListener('click', function() {
+  showAxis = !showAxis;
+  this.textContent = `🔄 Sumbu Bumi: ${showAxis ? 'ON' : 'OFF'}`;
+  this.classList.toggle('active', showAxis);
+});
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
